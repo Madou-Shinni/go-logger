@@ -276,3 +276,11 @@ func Error(msg string, fields ...zap.Field) {
 	setLogger()
 	logger.Error(msg, fields...)
 }
+
+// Sync calls the underlying Core's Sync method, flushing any buffered log
+// entries. Applications should take care to call Sync before exiting.
+func Sync() {
+	if logger != nil {
+		logger.Sync()
+	}
+}
