@@ -19,6 +19,8 @@ const (
 	DefaultTimeLayout = time.RFC3339
 )
 
+var logger *zap.Logger
+
 // Option custom setup config
 type Option func(*option)
 
@@ -185,15 +187,16 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 		)
 	}
 
-	logger := zap.New(core,
+	log := zap.New(core,
 		zap.AddCaller(),
 		zap.ErrorOutput(stderr),
 	)
 
 	for key, value := range opt.fields {
-		logger = logger.WithOptions(zap.Fields(zapcore.Field{Key: key, Type: zapcore.StringType, String: value}))
+		log = log.WithOptions(zap.Fields(zapcore.Field{Key: key, Type: zapcore.StringType, String: value}))
 	}
-	return logger, nil
+
+	return log, nil
 }
 
 var _ Meta = (*meta)(nil)
@@ -245,18 +248,28 @@ func WrapMeta(err error, metas ...Meta) (fields []zap.Field) {
 	return
 }
 
+func setLogger() {
+	if logger == nil {
+		logger, _ = NewJSONLogger()
+	}
+}
+
 func Info(msg string, fields ...zap.Field) {
-	zap.L().Info(msg, fields...)
+	setLogger()
+	logger.Info(msg, fields...)
 }
 
 func Debug(msg string, fields ...zap.Field) {
-	zap.L().Debug(msg, fields...)
+	setLogger()
+	logger.Debug(msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
-	zap.L().Warn(msg, fields...)
+	setLogger()
+	logger.Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	zap.L().Error(msg, fields...)
+	setLogger()
+	logger.Error(msg, fields...)
 }

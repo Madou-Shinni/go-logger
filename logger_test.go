@@ -31,4 +31,7 @@ func TestNewJSONLogger(t *testing.T) {
 	logger.Warn("err occurs", zap.Any("key", "value"))
 	logger.Error("err occurs", zap.Int("key", 1))
 	logger.Debug("err occurs", zap.Int("key", 1))
+
+	Debug("err occurs", zap.String("key", "err.Error()"))
+	Error("err occurs", zap.String("key", "err.Error()"))
 }
