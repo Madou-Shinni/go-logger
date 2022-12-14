@@ -14,6 +14,8 @@ func TestNewJSONLogger(t *testing.T) {
 		WithFileRotationP("/log/test.log"),
 		// 不在控制台打印
 		WithDisableConsole(),
+		// 时间格式化
+		WithTimeLayout("2006-01-02 15:04:05"),
 	)
 	if err != nil {
 		t.Fatal(err)
