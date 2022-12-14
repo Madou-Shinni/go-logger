@@ -1,4 +1,4 @@
-module logger
+module gitee.com/Madou-Shinni/go-logger
 
 go 1.18
 
