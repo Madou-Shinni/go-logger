@@ -244,3 +244,19 @@ func WrapMeta(err error, metas ...Meta) (fields []zap.Field) {
 
 	return
 }
+
+func Info(msg string, fields ...zap.Field) {
+	zap.L().Info(msg, fields...)
+}
+
+func Debug(msg string, fields ...zap.Field) {
+	zap.L().Debug(msg, fields...)
+}
+
+func Warn(msg string, fields ...zap.Field) {
+	zap.L().Warn(msg, fields...)
+}
+
+func Error(msg string, fields ...zap.Field) {
+	zap.L().Error(msg, fields...)
+}
