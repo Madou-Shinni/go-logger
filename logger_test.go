@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"errors"
 	"go.uber.org/zap"
 	"testing"
 )
@@ -22,16 +21,18 @@ func TestNewJSONLogger(t *testing.T) {
 	}
 
 	defer logger.Sync()
-
-	err = errors.New("pkg error")
-	logger.Error("err occurs", WrapMeta(nil, NewMeta("para1", "value1"), NewMeta("para2", "value2"))...)
-	logger.Error("err occurs", WrapMeta(err, NewMeta("para1", "value1"), NewMeta("para2", "value2"))...)
-
-	logger.Info("err occurs", zap.String("key", "value"))
-	logger.Warn("err occurs", zap.Any("key", "value"))
-	logger.Error("err occurs", zap.Int("key", 1))
-	logger.Debug("err occurs", zap.Int("key", 1))
+	//
+	//err = errors.New("pkg error")
+	//logger.Error("err occurs", WrapMeta(nil, NewMeta("para1", "value1"), NewMeta("para2", "value2"))...)
+	//logger.Error("err occurs", WrapMeta(err, NewMeta("para1", "value1"), NewMeta("para2", "value2"))...)
+	//
+	//logger.Info("err occurs", zap.String("key", "value"))
+	//logger.Warn("err occurs", zap.Any("key", "value"))
+	//logger.Error("err occurs", zap.Int("key", 1))
+	//logger.Debug("err occurs", zap.Int("key", 1))
 
 	Debug("err occurs", zap.String("key", "err.Error()"))
+	Info("err occurs", zap.String("key", "err.Error()"))
+	Warn("err occurs", zap.String("key", "err.Error()"))
 	Error("err occurs", zap.String("key", "err.Error()"))
 }

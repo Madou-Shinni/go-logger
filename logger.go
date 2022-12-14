@@ -196,6 +196,9 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 		log = log.WithOptions(zap.Fields(zapcore.Field{Key: key, Type: zapcore.StringType, String: value}))
 	}
 
+	// 给全局logger对象
+	logger = log
+
 	return log, nil
 }
 
