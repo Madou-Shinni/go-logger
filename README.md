@@ -119,7 +119,7 @@ func GinLogger() gin.HandlerFunc {
 
 		// 判断请求类型是否是json
 		if strings.ContainsAny(c.ContentType(), "application/json") {
-			//defer c.Request.Body.Close()
+			defer c.Request.Body.Close()
 			body, _ := ioutil.ReadAll(c.Request.Body)
 			//注意：重新赋值必须这样否则无法从context重在获取数据
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
