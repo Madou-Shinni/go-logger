@@ -1,4 +1,4 @@
-module gitee.com/Madou-Shinni/go-logger
+module github.com/Madou-Shinni/go-logger
 
 go 1.18
 
