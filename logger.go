@@ -30,6 +30,7 @@ type option struct {
 	file           io.Writer
 	timeLayout     string
 	disableConsole bool
+	highlighting   bool
 }
 
 // WithDebugLevel only greater than 'level' will output
@@ -117,6 +118,13 @@ func WithDisableConsole() Option {
 	}
 }
 
+// WithEnableHighlighting write log in highlighting
+func WithEnableHighlighting() Option {
+	return func(opt *option) {
+		opt.highlighting = true
+	}
+}
+
 // NewJSONLogger return a json-encoder zap logger,
 func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 	opt := &option{level: DefaultLevel, fields: make(map[string]string)}
@@ -144,6 +152,10 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 		},
 		EncodeDuration: zapcore.MillisDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder, // 全路径编码器
+	}
+
+	if opt.highlighting {
+		encoderConfig.EncodeLevel = zapcore.LowercaseColorLevelEncoder
 	}
 
 	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
@@ -281,6 +293,6 @@ func Error(msg string, fields ...zap.Field) {
 // entries. Applications should take care to call Sync before exiting.
 func Sync() {
 	if logger != nil {
-		logger.Sync()
+		_ = logger.Sync()
 	}
 }
