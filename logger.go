@@ -2,6 +2,7 @@ package logger
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,6 +21,8 @@ const (
 )
 
 var logger *zap.Logger
+
+var atomicLevel zap.AtomicLevel
 
 // Option custom setup config
 type Option func(*option)
@@ -148,14 +151,17 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 
 	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
 
+	// Initialize atomicLevel with the initial logging level
+	atomicLevel = zap.NewAtomicLevelAt(opt.level)
+
 	// lowPriority usd by info\debug\warn
 	lowPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= opt.level && lvl < zapcore.ErrorLevel
+		return lvl >= atomicLevel.Level() && lvl < zapcore.ErrorLevel
 	})
 
 	// highPriority usd by error\panic\fatal
 	highPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= opt.level && lvl >= zapcore.ErrorLevel
+		return lvl >= atomicLevel.Level() && lvl >= zapcore.ErrorLevel
 	})
 
 	stdout := zapcore.Lock(os.Stdout) // lock for concurrent safe
@@ -181,7 +187,7 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 			zapcore.NewCore(jsonEncoder,
 				zapcore.AddSync(opt.file),
 				zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-					return lvl >= opt.level
+					return lvl >= atomicLevel.Level()
 				}),
 			),
 		)
@@ -283,4 +289,13 @@ func Sync() {
 	if logger != nil {
 		logger.Sync()
 	}
+}
+
+// ChangeLevelHandlerFunc Change log level by http
+// Only GET and PUT are supported.
+// curl -X PUT localhost:8080/log/level?level=debug
+// curl -X PUT localhost:8080/log/level -d level=debug
+// curl -X PUT localhost:8080/ log/ level -H "Content-Type: application/ json" -d '{"level":"debug"}'
+func ChangeLevelHandlerFunc() http.HandlerFunc {
+	return atomicLevel.ServeHTTP
 }
