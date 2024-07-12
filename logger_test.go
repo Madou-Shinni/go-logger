@@ -21,6 +21,8 @@ func TestNewJSONLogger(t *testing.T) {
 		WithDisableConsole(),
 		// 时间格式化
 		WithTimeLayout("2006-01-02 15:04:05"),
+		// 高亮
+		WithEnableHighlighting(),
 	)
 	if err != nil {
 		t.Fatal(err)
