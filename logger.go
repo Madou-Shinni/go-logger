@@ -207,6 +207,7 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 
 	log := zap.New(core,
 		zap.AddCaller(),
+		zap.AddCallerSkip(1),
 		zap.ErrorOutput(stderr),
 	)
 
