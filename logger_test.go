@@ -2,13 +2,14 @@ package logger
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestNewJSONLogger(t *testing.T) {
@@ -139,4 +140,28 @@ func TestChangeLevelHandlerFunc(t *testing.T) {
 	assert.Equal(t, zapcore.DebugLevel, atomicLevel.Level())
 	logger.Info("This is a info message")   // This should now be logged
 	logger.Debug("This is a debug message") // This should now be logged
+}
+
+func TestRotation(t *testing.T) {
+	// 使用日期轮转（按天分割）
+	logger, _ = NewJSONLogger(
+		WithFileRotationByDate("./log/app.log"),
+		WithMaxAge(30),
+		WithRotationPattern(".%Y%m%d"), // 文件名格式: app.log.20240101
+	)
+
+	// 或者通过配置启用
+	//logger, _ := logger.NewJSONLogger(
+	//	logger.WithFileRotationP("/var/log/app.log"),
+	//	logger.WithMaxAge(30),
+	//	logger.WithUseRotateLogs(true),
+	//	logger.WithRotationPattern(".%Y%m%d%H"),  // 按小时分割
+	//)
+
+	logger.Error("err occurs", WrapMeta(nil, NewMeta("para1", "value1"), NewMeta("para2", "value2"))...)
+
+	logger.Info("err occurs", zap.String("key", "value"))
+	logger.Warn("err occurs", zap.Any("key", "value"))
+	logger.Error("err occurs", zap.Int("key", 1))
+	logger.Debug("err occurs", zap.Int("key", 1))
 }

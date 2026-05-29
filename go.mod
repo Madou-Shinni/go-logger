@@ -3,7 +3,8 @@ module github.com/Madou-Shinni/go-logger
 go 1.22
 
 require (
-	github.com/stretchr/testify v1.8.1
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.24.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
@@ -11,6 +12,8 @@ require (
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
+	github.com/lestrrat-go/strftime v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

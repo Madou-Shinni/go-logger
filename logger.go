@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/lestrrat-go/file-rotatelogs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -34,6 +35,37 @@ type option struct {
 	timeLayout     string
 	disableConsole bool
 	highlighting   bool
+	rotationConfig *RotationConfig
+}
+
+// RotationConfig 日志轮转配置
+type RotationConfig struct {
+	MaxSize       int           // 单个文件最大尺寸，单位 MB
+	MaxAge        int           // 保留旧文件的最大天数
+	MaxBackups    int           // 最多保留的备份文件数
+	LocalTime     bool          // 使用本地时间
+	Compress      bool          // 是否压缩旧文件
+	RotateByDate  bool          // 是否按日期分割
+	RotationTime  time.Duration // 轮转时间间隔
+	UseRotateLogs bool          // 是否使用 file-rotatelogs 库（日期轮转）
+	Pattern       string        // 日期轮转的文件名模式
+	RotationCount uint          // 保留的轮转文件数量
+}
+
+// defaultRotationConfig 默认轮转配置
+func defaultRotationConfig() *RotationConfig {
+	return &RotationConfig{
+		MaxSize:       128,
+		MaxAge:        30,
+		MaxBackups:    300,
+		LocalTime:     true,
+		Compress:      true,
+		RotateByDate:  false,
+		RotationTime:  24 * time.Hour,
+		UseRotateLogs: false,
+		Pattern:       ".%Y%m%d%H%M",
+		RotationCount: 0,
+	}
 }
 
 // WithDebugLevel only greater than 'level' will output
@@ -96,13 +128,72 @@ func WithFileRotationP(file string) Option {
 	}
 
 	return func(opt *option) {
-		opt.file = &lumberjack.Logger{ // concurrent-safed
-			Filename:   file, // 文件路径
-			MaxSize:    128,  // 单个文件最大尺寸，默认单位 M
-			MaxBackups: 300,  // 最多保留 300 个备份
-			MaxAge:     30,   // 最大时间，默认单位 day
-			LocalTime:  true, // 使用本地时间
-			Compress:   true, // 是否压缩 disabled by default
+		// 如果配置了使用 file-rotatelogs，则使用日期轮转
+		if opt.rotationConfig != nil && opt.rotationConfig.UseRotateLogs {
+			rotationTime := opt.rotationConfig.RotationTime
+			if rotationTime <= 0 {
+				rotationTime = 24 * time.Hour
+			}
+
+			pattern := opt.rotationConfig.Pattern
+			if pattern == "" {
+				pattern = ".%Y%m%d%H%M"
+			}
+
+			var err error
+			opt.file, err = rotatelogs.New(
+				file+pattern,
+				rotatelogs.WithRotationTime(rotationTime),
+				rotatelogs.WithMaxAge(time.Duration(opt.rotationConfig.MaxAge)*24*time.Hour),
+			)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// 使用默认的 lumberjack 轮转
+			opt.file = &lumberjack.Logger{ // concurrent-safed
+				Filename:   file, // 文件路径
+				MaxSize:    128,  // 单个文件最大尺寸，默认单位 M
+				MaxBackups: 300,  // 最多保留 300 个备份
+				MaxAge:     30,   // 最大时间，默认单位 day
+				LocalTime:  true, // 使用本地时间
+				Compress:   true, // 是否压缩 disabled by default
+			}
+		}
+	}
+}
+
+// WithFileRotationByDate write log to some file with date rotation using file-rotatelogs
+func WithFileRotationByDate(file string) Option {
+	dir := filepath.Dir(file)
+	if err := os.MkdirAll(dir, 0766); err != nil {
+		panic(err)
+	}
+
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.UseRotateLogs = true
+
+		rotationTime := opt.rotationConfig.RotationTime
+		if rotationTime <= 0 {
+			rotationTime = 24 * time.Hour
+		}
+
+		pattern := opt.rotationConfig.Pattern
+		if pattern == "" {
+			pattern = ".%Y%m%d"
+		}
+
+		var err error
+		opt.file, err = rotatelogs.New(
+			file+pattern,
+			rotatelogs.WithRotationTime(rotationTime),
+			rotatelogs.WithMaxAge(time.Duration(opt.rotationConfig.MaxAge)*24*time.Hour),
+		)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
@@ -125,6 +216,106 @@ func WithDisableConsole() Option {
 func WithEnableHighlighting() Option {
 	return func(opt *option) {
 		opt.highlighting = true
+	}
+}
+
+// WithMaxSize 设置单个日志文件最大尺寸（MB）
+func WithMaxSize(maxSize int) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.MaxSize = maxSize
+	}
+}
+
+// WithMaxAge 设置保留旧文件的最大天数
+func WithMaxAge(maxAge int) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.MaxAge = maxAge
+	}
+}
+
+// WithMaxBackups 设置最多保留的备份文件数
+func WithMaxBackups(maxBackups int) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.MaxBackups = maxBackups
+	}
+}
+
+// WithLocalTime 设置是否使用本地时间
+func WithLocalTime(localTime bool) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.LocalTime = localTime
+	}
+}
+
+// WithCompress 设置是否压缩旧文件
+func WithCompress(compress bool) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.Compress = compress
+	}
+}
+
+// WithRotateByDate 设置是否按日期分割日志
+func WithRotateByDate(rotateByDate bool) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.RotateByDate = rotateByDate
+	}
+}
+
+// WithRotationPattern 设置日期轮转的文件名模式
+func WithRotationPattern(pattern string) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.Pattern = pattern
+	}
+}
+
+// WithUseRotateLogs 设置是否使用 file-rotatelogs 库进行日期轮转
+func WithUseRotateLogs(useRotateLogs bool) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.UseRotateLogs = useRotateLogs
+	}
+}
+
+// WithRotationCount 设置保留的轮转文件数量
+func WithRotationCount(count uint) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.RotationCount = count
+	}
+}
+
+// WithRotationTime 设置轮转时间间隔
+func WithRotationTime(rotationTime time.Duration) Option {
+	return func(opt *option) {
+		if opt.rotationConfig == nil {
+			opt.rotationConfig = defaultRotationConfig()
+		}
+		opt.rotationConfig.RotationTime = rotationTime
 	}
 }
 
